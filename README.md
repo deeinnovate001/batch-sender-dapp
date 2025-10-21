@@ -1,2 +1,12 @@
-# batch-sender-dapp
-This is an Application that allows users to send multiple transactions in eth on base network and also supports faucets on base network
+# 💸 Batch Sender DApp
+
+Send ETH to multiple addresses on Base network with WalletConnect integration.
+
+## 🌟 Features
+
+- WalletConnect (300+ wallets)
+- Base Mainnet & Sepolia support
+- Batch ETH transfers
+- Automatic service fees
+- CSV import/export
+- Beautiful UI

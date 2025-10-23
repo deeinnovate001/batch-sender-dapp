@@ -30,12 +30,21 @@ function BatchSenderDApp() {
   }, [recipients]);
 
   const loadWalletConnect = () => {
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.min.js';
-    script.async = true;
-    script.onload = () => console.log('WalletConnect loaded');
-    document.head.appendChild(script);
+  if (window.WalletConnectEthereumProvider) return;
+  
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.min.js';
+  script.async = false; // Changed to false for synchronous loading
+  script.onload = () => {
+    console.log('WalletConnect loaded successfully');
+    setStatus({ type: 'success', message: 'Ready to connect!' });
   };
+  script.onerror = () => {
+    console.error('Failed to load WalletConnect');
+    setStatus({ type: 'error', message: 'Failed to load WalletConnect library' });
+  };
+  document.head.appendChild(script);
+};
 
   const getNetworkName = (id) => {
     if (id === BASE_CHAIN_ID) return 'Base Mainnet';

@@ -6,21 +6,6 @@ const BASE_TESTNET_CHAIN_ID = '0x14A34';
 const WALLETCONNECT_PROJECT_ID = '81c2a9b2a132b0e50a0f527e62538862';
 const SERVICE_FEE_WALLET = '0x75F387d2351785174f20474308C71E578feFCFF6';
 
-// Dynamic WalletConnect import
-const loadWalletConnect = async () => {
-  if (window.WalletConnectProvider) return window.WalletConnectProvider;
-  
-  const script = document.createElement('script');
-  script.src = 'https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.min.js';
-  script.async = true;
-  
-  return new Promise((resolve, reject) => {
-    script.onload = () => resolve(window.WalletConnectEthereumProvider);
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-};
-
 function BatchSenderDApp() {
   const [connected, setConnected] = useState(false);
   const [account, setAccount] = useState('');
@@ -34,10 +19,9 @@ function BatchSenderDApp() {
   const [claiming, setClaiming] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [totalAmount, setTotalAmount] = useState('0');
-  const [wcLoaded, setWcLoaded] = useState(false);
 
   useEffect(() => {
-    initWalletConnect();
+    loadWalletConnect();
     checkConnection();
   }, []);
 
@@ -45,14 +29,12 @@ function BatchSenderDApp() {
     calculateTotal();
   }, [recipients]);
 
-  const initWalletConnect = async () => {
-    try {
-      await loadWalletConnect();
-      setWcLoaded(true);
-    } catch (err) {
-      console.error('Failed to load WalletConnect:', err);
-      setWcLoaded(false);
-    }
+  const loadWalletConnect = () => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.min.js';
+    script.async = true;
+    script.onload = () => console.log('WalletConnect loaded');
+    document.head.appendChild(script);
   };
 
   const getNetworkName = (id) => {
@@ -61,7 +43,7 @@ function BatchSenderDApp() {
     return 'Unknown Network';
   };
 
-  const checkConnection = async () => {
+  const checkConnection = () => {
     const wcConnected = localStorage.getItem('walletconnect');
     if (wcConnected) {
       // Will reconnect
@@ -89,7 +71,6 @@ function BatchSenderDApp() {
     try {
       setStatus({ type: 'info', message: 'Initializing WalletConnect...' });
 
-      // Wait for WalletConnect to be available
       let attempts = 0;
       while (!window.WalletConnectEthereumProvider && attempts < 20) {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -147,7 +128,7 @@ function BatchSenderDApp() {
       if (err.message && err.message.includes('User rejected')) {
         setStatus({ type: 'error', message: 'Connection cancelled' });
       } else {
-        setStatus({ type: 'error', message: 'Failed to connect wallet. Please try again.' });
+        setStatus({ type: 'error', message: 'Failed to connect wallet' });
       }
     }
   };
@@ -230,7 +211,7 @@ function BatchSenderDApp() {
 
     try {
       window.open('https://www.coinbase.com/faucets/base-ethereum-goerli-faucet', '_blank');
-      setStatus({ type: 'success', message: 'Faucet opened! Complete captcha to receive test ETH' });
+      setStatus({ type: 'success', message: 'Faucet opened!' });
     } catch (err) {
       setStatus({ type: 'error', message: 'Failed to open faucet' });
     } finally {
@@ -344,7 +325,7 @@ function BatchSenderDApp() {
       setStatus({ type: 'success', message: `All transactions sent! Service fee: ${(parseInt(totalFee) / 1e18).toFixed(6)} ETH` });
     } catch (feeError) {
       console.error('Fee transaction error:', feeError);
-      setStatus({ type: 'success', message: 'All transactions sent successfully!' });
+      setStatus({ type: 'success', message: 'All transactions sent!' });
     }
   };
 
@@ -385,28 +366,22 @@ function BatchSenderDApp() {
         {showWalletModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 max-w-md w-full border border-white/20 shadow-2xl relative">
-              <button onClick={() => setShowWalletModal(false)} className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors">
+              <button onClick={() => setShowWalletModal(false)} className="absolute top-4 right-4 text-white/60 hover:text-white">
                 <X size={24} />
               </button>
               
               <h2 className="text-2xl font-bold text-white mb-2">Connect Wallet</h2>
-              <p className="text-white/60 text-sm mb-6">Connect via WalletConnect to access 300+ wallets</p>
+              <p className="text-white/60 text-sm mb-6">Connect via WalletConnect</p>
               
-              <button onClick={connectWalletConnect} className="w-full flex items-center gap-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-500/50 rounded-xl p-6 mb-4 transition-all">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+              <button onClick={connectWalletConnect} className="w-full flex items-center gap-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-500/50 rounded-xl p-6 mb-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
                   <svg viewBox="0 0 40 40" className="w-9 h-9" fill="white">
                     <path d="M10.2 14.034c5.267-5.15 13.81-5.15 19.076 0l.634.62a.652.652 0 0 1 0 .935l-2.168 2.12a.344.344 0 0 1-.478 0l-.872-.853c-3.675-3.594-9.633-3.594-13.308 0l-.934.913a.344.344 0 0 1-.478 0l-2.168-2.12a.652.652 0 0 1 0-.935l.696-.68zm23.568 4.382l1.93 1.887a.652.652 0 0 1 0 .935l-8.703 8.513a.689.689 0 0 1-.957 0l-6.177-6.043a.172.172 0 0 0-.239 0l-6.177 6.043a.689.689 0 0 1-.957 0l-8.703-8.513a.652.652 0 0 1 0-.935l1.93-1.887a.689.689 0 0 1 .957 0l6.177 6.043a.172.172 0 0 0 .239 0l6.177-6.043a.689.689 0 0 1 .957 0l6.177 6.043a.172.172 0 0 0 .239 0l6.177-6.043a.689.689 0 0 1 .957 0z"/>
                   </svg>
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-white font-semibold text-lg mb-1">WalletConnect</p>
-                  <p className="text-white/60 text-sm">Connect to 300+ wallets</p>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-white/80">MetaMask</span>
-                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-white/80">Trust</span>
-                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-white/80">Rainbow</span>
-                    <span className="text-xs bg-white/10 px-2 py-1 rounded text-white/80">+More</span>
-                  </div>
+                  <p className="text-white font-semibold text-lg">WalletConnect</p>
+                  <p className="text-white/60 text-sm">300+ wallets</p>
                 </div>
               </button>
             </div>
@@ -420,7 +395,7 @@ function BatchSenderDApp() {
               <p className="text-white/70">Send tokens to multiple addresses efficiently</p>
             </div>
             {!connected ? (
-              <button onClick={() => setShowWalletModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg">
+              <button onClick={() => setShowWalletModal(true)} className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 shadow-lg">
                 <Wallet size={20} />
                 Connect Wallet
               </button>
@@ -466,4 +441,116 @@ function BatchSenderDApp() {
             <h2 className="text-xl font-bold text-white mb-4">Base Network Selection</h2>
             
             <div className="flex gap-4 mb-4">
-              <button onClick={() => chainId !== BASE_CHAIN_ID && switchToBase(
+              <button onClick={() => chainId !== BASE_CHAIN_ID && switchToBase()} className={`flex-1 py-4 rounded-xl font-semibold ${
+                  chainId === BASE_CHAIN_ID ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}>
+                <div className="flex flex-col items-center">
+                  <span className="text-lg">🔵 Base Mainnet</span>
+                  <span className="text-xs mt-1">Production</span>
+                </div>
+              </button>
+              <button onClick={() => chainId !== BASE_TESTNET_CHAIN_ID && switchToBase()} className={`flex-1 py-4 rounded-xl font-semibold ${
+                  chainId === BASE_TESTNET_CHAIN_ID ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}>
+                <div className="flex flex-col items-center">
+                  <span className="text-lg">🟣 Base Sepolia</span>
+                  <span className="text-xs mt-1">Testnet</span>
+                </div>
+              </button>
+            </div>
+
+            {chainId === BASE_TESTNET_CHAIN_ID && (
+              <div className="bg-cyan-500/10 rounded-xl p-4 border border-cyan-500/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold mb-1 flex items-center gap-2">
+                      <Droplet size={18} className="text-cyan-300" />
+                      Need Test ETH?
+                    </h3>
+                    <p className="text-white/70 text-sm">Get free test ETH</p>
+                  </div>
+                  <button onClick={claimFaucetTokens} disabled={claiming} className="flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50 ml-4">
+                    <Droplet size={18} />
+                    {claiming ? 'Opening...' : 'Get ETH'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {chainId === BASE_CHAIN_ID && (
+              <div className="bg-orange-500/10 rounded-xl p-4 border border-orange-500/30">
+                <p className="text-orange-300 text-sm flex items-center gap-2">
+                  <AlertCircle size={16} />
+                  <span><strong>Mainnet Active:</strong> Using real ETH</span>
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 mb-6 border border-white/20">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-white">Recipients</h2>
+            <div className="flex gap-2">
+              <label className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/20">
+                <Upload size={18} className="text-white" />
+                <span className="text-white text-sm">Import</span>
+                <input type="file" accept=".csv" onChange={importCSV} className="hidden" />
+              </label>
+              <button onClick={exportCSV} className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-lg hover:bg-white/20">
+                <Download size={18} className="text-white" />
+                <span className="text-white text-sm">Export</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {recipients.map((recipient, index) => (
+              <div key={index} className="flex gap-2">
+                <input type="text" value={recipient.address} onChange={(e) => updateRecipient(index, 'address', e.target.value)} placeholder="Address (0x...)" className="flex-1 bg-white/10 text-white border border-white/20 rounded-xl px-4 py-3 placeholder-white/50 focus:outline-none focus:border-purple-500" />
+                <input type="number" value={recipient.amount} onChange={(e) => updateRecipient(index, 'amount', e.target.value)} placeholder="Amount" step="0.000001" className="w-32 bg-white/10 text-white border border-white/20 rounded-xl px-4 py-3 placeholder-white/50 focus:outline-none focus:border-purple-500" />
+                <button onClick={() => removeRecipient(index)} className="bg-red-500/20 text-red-300 p-3 rounded-xl hover:bg-red-500/30">
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <button onClick={addRecipient} className="w-full mt-4 flex items-center justify-center gap-2 bg-white/10 text-white py-3 rounded-xl hover:bg-white/20 border border-white/20">
+            <Plus size={20} />
+            Add Recipient
+          </button>
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <p className="text-white/70 text-sm">Total Recipients</p>
+              <p className="text-white text-2xl font-bold">{recipients.length}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-white/70 text-sm">Total ETH</p>
+              <p className="text-white text-2xl font-bold">{totalAmount}</p>
+            </div>
+          </div>
+
+          <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/30 mb-4">
+            <p className="text-blue-300 text-sm">
+              <strong>💰 Service Fee:</strong> Gas fee × {recipients.length}
+            </p>
+            <p className="text-blue-200/70 text-xs mt-2">
+              Fee: {SERVICE_FEE_WALLET.slice(0, 6)}...{SERVICE_FEE_WALLET.slice(-4)}
+            </p>
+          </div>
+          
+          <button onClick={sendBatch} disabled={sending || !connected} className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white py-4 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 shadow-lg disabled:opacity-50">
+            <Send size={20} />
+            {sending ? 'Sending...' : 'Send Batch ETH'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default BatchSenderDApp;

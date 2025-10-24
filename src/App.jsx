@@ -13,38 +13,75 @@ function BatchSenderDApp() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [chainId, setChainId] = useState('');
   const [networkName, setNetworkName] = useState('');
-  const [ethProvider, setEthProvider] = useState(null);
+  const [provider, setProvider] = useState(null);
   const [recipients, setRecipients] = useState([{ address: '', amount: '' }]);
   const [sending, setSending] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [totalAmount, setTotalAmount] = useState('0');
+  const [web3Modal, setWeb3Modal] = useState(null);
 
   useEffect(() => {
-    loadWalletConnect();
-    checkConnection();
+    initWeb3Modal();
   }, []);
 
   useEffect(() => {
     calculateTotal();
   }, [recipients]);
 
-  const loadWalletConnect = () => {
-  if (window.WalletConnectEthereumProvider) return;
-  
-  const script = document.createElement('script');
-  script.src = 'https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.min.js';
-  script.async = false; // Changed to false for synchronous loading
-  script.onload = () => {
-    console.log('WalletConnect loaded successfully');
-    setStatus({ type: 'success', message: 'Ready to connect!' });
+  const initWeb3Modal = async () => {
+    try {
+      // Load Web3Modal and WalletConnect scripts
+      await loadScripts();
+      
+      // Wait a bit for scripts to be available
+      setTimeout(() => {
+        if (window.Web3Modal && window.WalletConnectProvider) {
+          const providerOptions = {
+            walletconnect: {
+              package: window.WalletConnectProvider.default,
+              options: {
+                projectId: WALLETCONNECT_PROJECT_ID,
+                chains: [parseInt(BASE_TESTNET_CHAIN_ID, 16), parseInt(BASE_CHAIN_ID, 16)],
+                showQrModal: true,
+                qrModalOptions: {
+                  themeMode: 'dark'
+                }
+              }
+            }
+          };
+
+          const modal = new window.Web3Modal.default({
+            cacheProvider: false,
+            providerOptions,
+            theme: 'dark'
+          });
+
+          setWeb3Modal(modal);
+          setStatus({ type: 'success', message: 'Ready to connect!' });
+        }
+      }, 1000);
+    } catch (error) {
+      console.error('Init error:', error);
+      setStatus({ type: 'info', message: 'Loading wallet connection...' });
+    }
   };
-  script.onerror = () => {
-    console.error('Failed to load WalletConnect');
-    setStatus({ type: 'error', message: 'Failed to load WalletConnect library' });
+
+  const loadScripts = () => {
+    return new Promise((resolve) => {
+      // Load Web3Modal
+      const web3ModalScript = document.createElement('script');
+      web3ModalScript.src = 'https://unpkg.com/web3modal@1.9.12/dist/index.js';
+      web3ModalScript.onload = () => {
+        // Load WalletConnect Provider
+        const wcScript = document.createElement('script');
+        wcScript.src = 'https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js';
+        wcScript.onload = () => resolve();
+        document.head.appendChild(wcScript);
+      };
+      document.head.appendChild(web3ModalScript);
+    });
   };
-  document.head.appendChild(script);
-};
 
   const getNetworkName = (id) => {
     if (id === BASE_CHAIN_ID) return 'Base Mainnet';
@@ -52,105 +89,78 @@ function BatchSenderDApp() {
     return 'Unknown Network';
   };
 
-  const checkConnection = () => {
-    const wcConnected = localStorage.getItem('walletconnect');
-    if (wcConnected) {
-      // Will reconnect
+  const connectWallet = async () => {
+    if (!web3Modal) {
+      setStatus({ type: 'error', message: 'Please wait, loading connection...' });
+      return;
     }
-  };
 
-  const handleChainChanged = (newChainId) => {
-    setChainId(newChainId);
-    setNetworkName(getNetworkName(newChainId));
-  };
-
-  const handleAccountsChanged = (accounts) => {
-    if (accounts.length === 0) {
-      disconnectWallet();
-    } else {
-      setAccount(accounts[0]);
-    }
-  };
-
-  const handleDisconnect = () => {
-    disconnectWallet();
-  };
-
-  const connectWalletConnect = async () => {
     try {
-      setStatus({ type: 'info', message: 'Initializing WalletConnect...' });
-
-      let attempts = 0;
-      while (!window.WalletConnectEthereumProvider && attempts < 20) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-      }
-
-      if (!window.WalletConnectEthereumProvider) {
-        setStatus({ type: 'error', message: 'WalletConnect failed to load. Please refresh and try again.' });
-        return;
-      }
-
-      const EthereumProvider = window.WalletConnectEthereumProvider.default;
+      setStatus({ type: 'info', message: 'Opening wallet selector...' });
       
-      const newProvider = await EthereumProvider.init({
-        projectId: WALLETCONNECT_PROJECT_ID,
-        chains: [parseInt(BASE_TESTNET_CHAIN_ID, 16)],
-        optionalChains: [parseInt(BASE_CHAIN_ID, 16)],
-        showQrModal: true,
-        qrModalOptions: {
-          themeMode: 'dark',
-          themeVariables: { '--wcm-z-index': '9999' }
-        },
-        metadata: {
-          name: 'Batch Token Sender',
-          description: 'Send tokens to multiple addresses on Base',
-          url: window.location.origin,
-          icons: ['https://avatars.githubusercontent.com/u/37784886']
-        }
-      });
+      const instance = await web3Modal.connect();
+      
+      // Check if it's a WalletConnect provider
+      if (instance.wc || instance.connector) {
+        setWalletType('WalletConnect');
+      } else if (instance.isMetaMask) {
+        setWalletType('MetaMask');
+      } else {
+        setWalletType('Web3 Wallet');
+      }
 
-      await newProvider.connect();
+      // Get accounts
+      const accounts = await instance.enable();
+      const currentChainId = await instance.request({ method: 'eth_chainId' });
 
-      const accounts = newProvider.accounts;
-      const currentChainId = '0x' + newProvider.chainId.toString(16);
-
-      setEthProvider(newProvider);
+      setProvider(instance);
       setConnected(true);
       setAccount(accounts[0]);
-      setWalletType('WalletConnect');
       setChainId(currentChainId);
       setNetworkName(getNetworkName(currentChainId));
       setShowWalletModal(false);
 
-      newProvider.on('accountsChanged', handleAccountsChanged);
-      newProvider.on('chainChanged', handleChainChanged);
-      newProvider.on('disconnect', handleDisconnect);
+      // Setup event listeners
+      instance.on('accountsChanged', (accs) => {
+        if (accs.length === 0) {
+          disconnectWallet();
+        } else {
+          setAccount(accs[0]);
+        }
+      });
+
+      instance.on('chainChanged', (newChainId) => {
+        setChainId(newChainId);
+        setNetworkName(getNetworkName(newChainId));
+      });
+
+      instance.on('disconnect', () => {
+        disconnectWallet();
+      });
 
       if (currentChainId !== BASE_CHAIN_ID && currentChainId !== BASE_TESTNET_CHAIN_ID) {
         setStatus({ type: 'error', message: 'Please switch to Base network' });
       } else {
         setStatus({ type: 'success', message: 'Wallet connected successfully!' });
       }
-    } catch (err) {
-      console.error('WalletConnect error:', err);
-      if (err.message && err.message.includes('User rejected')) {
-        setStatus({ type: 'error', message: 'Connection cancelled' });
-      } else {
-        setStatus({ type: 'error', message: 'Failed to connect wallet' });
-      }
+    } catch (error) {
+      console.error('Connection error:', error);
+      setStatus({ type: 'error', message: 'Failed to connect wallet' });
     }
   };
 
   const disconnectWallet = async () => {
     try {
-      if (ethProvider) {
-        await ethProvider.disconnect();
+      if (web3Modal) {
+        await web3Modal.clearCachedProvider();
+      }
+      if (provider && provider.disconnect) {
+        await provider.disconnect();
       }
       setConnected(false);
       setAccount('');
       setWalletType('');
-      setEthProvider(null);
+      setProvider(null);
       setStatus({ type: 'info', message: 'Wallet disconnected' });
     } catch (err) {
       console.error('Disconnect error:', err);
@@ -158,13 +168,13 @@ function BatchSenderDApp() {
   };
 
   const switchToBase = async () => {
-    if (!ethProvider) return;
+    if (!provider) return;
 
     const targetChain = chainId === BASE_CHAIN_ID ? BASE_TESTNET_CHAIN_ID : BASE_CHAIN_ID;
     const targetName = chainId === BASE_CHAIN_ID ? 'Base Sepolia' : 'Base Mainnet';
 
     try {
-      await ethProvider.request({
+      await provider.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: targetChain }],
       });
@@ -188,7 +198,7 @@ function BatchSenderDApp() {
             blockExplorerUrls: ['https://basescan.org']
           };
 
-          await ethProvider.request({
+          await provider.request({
             method: 'wallet_addEthereumChain',
             params: [networkConfig]
           });
@@ -220,7 +230,7 @@ function BatchSenderDApp() {
 
     try {
       window.open('https://www.coinbase.com/faucets/base-ethereum-goerli-faucet', '_blank');
-      setStatus({ type: 'success', message: 'Faucet opened!' });
+      setStatus({ type: 'success', message: 'Faucet opened! Complete captcha to receive test ETH' });
     } catch (err) {
       setStatus({ type: 'error', message: 'Failed to open faucet' });
     } finally {
@@ -292,14 +302,14 @@ function BatchSenderDApp() {
   };
 
   const sendNativeBatch = async () => {
-    if (!ethProvider) return;
+    if (!provider) return;
 
     for (let i = 0; i < recipients.length; i++) {
       setStatus({ type: 'info', message: `Sending to ${i + 1}/${recipients.length}...` });
       
       const amountWei = '0x' + (parseFloat(recipients[i].amount) * 1e18).toString(16);
       
-      await ethProvider.request({
+      await provider.request({
         method: 'eth_sendTransaction',
         params: [{
           from: account,
@@ -312,7 +322,7 @@ function BatchSenderDApp() {
     setStatus({ type: 'info', message: 'Processing service fee...' });
     
     try {
-      const gasPrice = await ethProvider.request({
+      const gasPrice = await provider.request({
         method: 'eth_gasPrice',
         params: [],
       });
@@ -322,7 +332,7 @@ function BatchSenderDApp() {
       const totalFee = (BigInt(feeAmount) * BigInt(recipients.length)).toString();
       const feeWei = '0x' + BigInt(totalFee).toString(16);
 
-      await ethProvider.request({
+      await provider.request({
         method: 'eth_sendTransaction',
         params: [{
           from: account,
@@ -334,7 +344,7 @@ function BatchSenderDApp() {
       setStatus({ type: 'success', message: `All transactions sent! Service fee: ${(parseInt(totalFee) / 1e18).toFixed(6)} ETH` });
     } catch (feeError) {
       console.error('Fee transaction error:', feeError);
-      setStatus({ type: 'success', message: 'All transactions sent!' });
+      setStatus({ type: 'success', message: 'All transactions sent successfully!' });
     }
   };
 
@@ -380,19 +390,24 @@ function BatchSenderDApp() {
               </button>
               
               <h2 className="text-2xl font-bold text-white mb-2">Connect Wallet</h2>
-              <p className="text-white/60 text-sm mb-6">Connect via WalletConnect</p>
+              <p className="text-white/60 text-sm mb-6">Choose your preferred wallet</p>
               
-              <button onClick={connectWalletConnect} className="w-full flex items-center gap-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-500/50 rounded-xl p-6 mb-4">
+              <button onClick={connectWallet} className="w-full flex items-center gap-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 border border-blue-500/50 rounded-xl p-6 mb-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
-                  <svg viewBox="0 0 40 40" className="w-9 h-9" fill="white">
-                    <path d="M10.2 14.034c5.267-5.15 13.81-5.15 19.076 0l.634.62a.652.652 0 0 1 0 .935l-2.168 2.12a.344.344 0 0 1-.478 0l-.872-.853c-3.675-3.594-9.633-3.594-13.308 0l-.934.913a.344.344 0 0 1-.478 0l-2.168-2.12a.652.652 0 0 1 0-.935l.696-.68zm23.568 4.382l1.93 1.887a.652.652 0 0 1 0 .935l-8.703 8.513a.689.689 0 0 1-.957 0l-6.177-6.043a.172.172 0 0 0-.239 0l-6.177 6.043a.689.689 0 0 1-.957 0l-8.703-8.513a.652.652 0 0 1 0-.935l1.93-1.887a.689.689 0 0 1 .957 0l6.177 6.043a.172.172 0 0 0 .239 0l6.177-6.043a.689.689 0 0 1 .957 0l6.177 6.043a.172.172 0 0 0 .239 0l6.177-6.043a.689.689 0 0 1 .957 0z"/>
-                  </svg>
+                  <Wallet size={28} className="text-white" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-white font-semibold text-lg">WalletConnect</p>
-                  <p className="text-white/60 text-sm">300+ wallets</p>
+                  <p className="text-white font-semibold text-lg">Connect Wallet</p>
+                  <p className="text-white/60 text-sm">MetaMask, WalletConnect, Coinbase & more</p>
                 </div>
               </button>
+
+              <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                <p className="text-white/70 text-xs">
+                  <strong className="text-white">300+ wallets supported</strong><br/>
+                  MetaMask, Trust Wallet, Coinbase Wallet, Ledger, and many more
+                </p>
+              </div>
             </div>
           </div>
         )}

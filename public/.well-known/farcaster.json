@@ -1,0 +1,30 @@
+{
+  "accountAssociation": {
+    "header": "REPLACE_THIS_AFTER_SIGNING",
+    "payload": "REPLACE_THIS_AFTER_SIGNING",
+    "signature": "REPLACE_THIS_AFTER_SIGNING"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Batch Sender",
+    "homeUrl": "https://batch-sender-dapp-kq6a.vercel.app",
+    "iconUrl": "https://batch-sender-dapp-kq6a.vercel.app/icon.png",
+    "splashImageUrl": "https://batch-sender-dapp-kq6a.vercel.app/splash.png",
+    "splashBackgroundColor": "#0052FF",
+    "subtitle": "Send tokens in batches efficiently",
+    "description": "Batch Sender allows you to send multiple token transfers in a single transaction, saving time and gas fees. Perfect for airdrops, payroll, and mass distributions on Base network.",
+    "screenshotUrls": [
+      "https://batch-sender-dapp-kq6a.vercel.app/screenshot1.png",
+      "https://batch-sender-dapp-kq6a.vercel.app/screenshot2.png",
+      "https://batch-sender-dapp-kq6a.vercel.app/screenshot3.png"
+    ],
+    "primaryCategory": "utilities",
+    "tags": ["batch", "transfer", "tokens", "ethereum", "base", "airdrop", "payments"],
+    "heroImageUrl": "https://batch-sender-dapp-kq6a.vercel.app/hero.png",
+    "tagline": "Batch transfers made simple",
+    "ogTitle": "Batch Sender - Multi-Token Transfers",
+    "ogDescription": "Send multiple token transfers efficiently in one transaction. Save gas and time with batch operations on Base.",
+    "ogImageUrl": "https://batch-sender-dapp-kq6a.vercel.app/og-image.png",
+    "noindex": true
+  }
+}

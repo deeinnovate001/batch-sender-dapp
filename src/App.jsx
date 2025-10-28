@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+
 import { sdk } from '@farcaster/miniapp-sdk';
 import React, { useState, useEffect } from 'react';
 import { Wallet, Send, Plus, Trash2, Upload, Download, AlertCircle, CheckCircle2, Droplet, X } from 'lucide-react';

@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { sdk } from '@farcaster/miniapp-sdk';
 import React, { useState, useEffect } from 'react';
 import { Wallet, Send, Plus, Trash2, Upload, Download, AlertCircle, CheckCircle2, Droplet, X } from 'lucide-react';
 
@@ -20,6 +22,12 @@ function BatchSenderDApp() {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [totalAmount, setTotalAmount] = useState('0');
   const [web3Modal, setWeb3Modal] = useState(null);
+
+  useEffect(() => {
+  sdk.actions.ready().catch((error) => {
+    console.error('Failed to signal ready state:', error);
+  });
+}, []);
 
   useEffect(() => {
     initWeb3Modal();

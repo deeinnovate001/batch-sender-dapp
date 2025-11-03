@@ -1,8 +1,11 @@
 {
   "accountAssociation": {
-    "header": "REPLACE_THIS_AFTER_SIGNING",
-    "payload": "REPLACE_THIS_AFTER_SIGNING",
-    "signature": "REPLACE_THIS_AFTER_SIGNING"
+    "header": "eyJmaWQiOjEsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0",
+    "payload": "eyJkb21haW4iOiJiYXRjaC1zZW5kZXItZGFwcC1rcTZhLnZlcmNlbC5hcHAifQ",
+    "signature": "MHg..."
+  },
+  "baseBuilder": {
+    "ownerAddress": "0x76788c4CD70A448E156bF70AB15C46114938a3a"
   },
   "miniapp": {
     "version": "1",
@@ -11,6 +14,7 @@
     "iconUrl": "https://batch-sender-dapp-kq6a.vercel.app/icon.png",
     "splashImageUrl": "https://batch-sender-dapp-kq6a.vercel.app/splash.png",
     "splashBackgroundColor": "#0052FF",
+    "webhookUrl": "https://batch-sender-dapp-kq6a.vercel.app/api/webhook",
     "subtitle": "Send tokens in batches efficiently",
     "description": "Batch Sender allows you to send multiple token transfers in a single transaction, saving time and gas fees. Perfect for airdrops, payroll, and mass distributions on Base network.",
     "screenshotUrls": [

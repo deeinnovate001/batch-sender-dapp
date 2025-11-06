@@ -1,9 +1,4 @@
 {
-  "accountAssociation": {
-    "header": "eyJmaWQiOjEsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0",
-    "payload": "eyJkb21haW4iOiJiYXRjaC1zZW5kZXItZGFwcC1rcTZhLnZlcmNlbC5hcHAifQ",
-    "signature": "MHg..."
-  },
   "baseBuilder": {
     "ownerAddress": "0x76788c4CD70A448E156bF70AB15C46114938a3a"
   },
